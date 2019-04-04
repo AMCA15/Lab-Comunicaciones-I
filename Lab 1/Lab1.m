@@ -1,9 +1,10 @@
 %% Anderson Contreras 16-11350
 
 clear;
+clc;
 
 % Numero de muestras
-N = 200000;
+N = 2000;
 
 % Frecuencia de Muestreo
 global Fs;
@@ -21,10 +22,43 @@ t = (1:N)/Fs;
 F=-(Fs-Fs/N)/2:Fs/N:(Fs-Fs/N)/2;
 
 % Selector
-msg = mensaje(3);
+msg = mensaje(1);
 msg_mod = modulador(msg, 'AM', Fc, 1);
 msg_canal = canal(msg_mod, 'OFF', 1);
-[y_BPF, y_D, y_LPF] = receptor(msg_canal, 0); 
+[y_BPF, y_D, y_LPF] = receptor(msg_canal, 0);
+
+% Versión sin ruido de la señal para el cálculo de S/N
+msg_canal_no_noise = canal(msg_mod, 'OFF', 1);
+[y_BPF_no_noise, y_D_no_noise, y_LPF_no_noise] = receptor(msg_canal_no_noise, 0);
+
+disp("======================================");
+power_msg = round(rms(msg)^2, 3, 'decimals');
+disp("Potencia del mensaje: " + power_msg);
+
+power_msg_mod = round(rms(msg_mod)^2, 3, 'decimals');
+disp("======================================");
+disp("A la salida del transmisor");
+disp("Potencia de la señal: " + power_msg_mod);
+disp("======================================");
+
+power_signal_BPF = round(rms(y_BPF)^2, 3, 'decimals');
+power_noise_BPF = round(rms(y_BPF - y_BPF_no_noise)^2, 3, 'decimals');
+s_n_BPF = round(power_signal_BPF / power_noise_BPF, 2, 'decimals');
+disp("A la salida del filtro pasabanda");
+disp("Potencia de la señal: " + power_signal_BPF);
+disp("Potencia del ruido: " + power_noise_BPF);
+disp("Relación señal a ruido: " + s_n_BPF + " (" + round(mag2db(s_n_BPF), 2, 'decimals') + " dB)");
+disp("======================================");
+
+power_signal_LPF = round(rms(y_LPF)^2, 3, 'decimals');
+power_noise_LPF = round(rms(y_LPF - y_LPF_no_noise)^2, 3, 'decimals');
+s_n_LPF = round(power_signal_LPF / power_noise_LPF, 2, 'decimals');
+disp("A la salida del filtro pasabajo");
+disp("Potencia de la señal: " + power_signal_LPF);
+disp("Potencia del ruido: " + power_noise_LPF);
+disp("Relación señal a ruido: " + s_n_LPF + " (" + round(mag2db(s_n_LPF), 2, 'decimals') + " dB)");
+return;
+
 
 %% Gráficas del Mensaje Original %%
 figure('Name','Mensaje Original');
