@@ -18,16 +18,23 @@ Fc = 10000;
 global t;
 t = (1:N)/Fs;
 
+% Frecuencia de filtros
+global f_bpf;
+global f_lpf;
+f_bpf = [8000 12000];      % Pasa Banda
+f_lpf = 2000;              % Pasa Bajo
+
+
 % Escala de frecuencia
 F=-(Fs-Fs/N)/2:Fs/N:(Fs-Fs/N)/2;
 
 % Selector
-msg = mensaje(1);
+msg = mensaje(2);
 msg_mod = modulador(msg, 'AM', Fc, 1);
 msg_canal = canal(msg_mod, 'OFF', 1);
 [y_BPF, y_D, y_LPF] = receptor(msg_canal, 0);
 
-% Versión sin ruido de la señal para el cálculo de S/N
+% Versiï¿½n sin ruido de la seï¿½al para el cï¿½lculo de S/N
 msg_canal_no_noise = canal(msg_mod, 'OFF', 1);
 [y_BPF_no_noise, y_D_no_noise, y_LPF_no_noise] = receptor(msg_canal_no_noise, 0);
 
@@ -38,37 +45,39 @@ disp("Potencia del mensaje: " + power_msg);
 power_msg_mod = round(rms(msg_mod)^2, 3, 'decimals');
 disp("======================================");
 disp("A la salida del transmisor");
-disp("Potencia de la señal: " + power_msg_mod);
+disp("Potencia de la seï¿½al: " + power_msg_mod);
 disp("======================================");
 
 power_signal_BPF = round(rms(y_BPF)^2, 3, 'decimals');
 power_noise_BPF = round(rms(y_BPF - y_BPF_no_noise)^2, 3, 'decimals');
 s_n_BPF = round(power_signal_BPF / power_noise_BPF, 2, 'decimals');
 disp("A la salida del filtro pasabanda");
-disp("Potencia de la señal: " + power_signal_BPF);
+disp("Potencia de la seï¿½al: " + power_signal_BPF);
 disp("Potencia del ruido: " + power_noise_BPF);
-disp("Relación señal a ruido: " + s_n_BPF + " (" + round(mag2db(s_n_BPF), 2, 'decimals') + " dB)");
+disp("Relaciï¿½n seï¿½al a ruido: " + s_n_BPF + " (" + round(mag2db(s_n_BPF), 2, 'decimals') + " dB)");
 disp("======================================");
 
 power_signal_LPF = round(rms(y_LPF)^2, 3, 'decimals');
 power_noise_LPF = round(rms(y_LPF - y_LPF_no_noise)^2, 3, 'decimals');
 s_n_LPF = round(power_signal_LPF / power_noise_LPF, 2, 'decimals');
 disp("A la salida del filtro pasabajo");
-disp("Potencia de la señal: " + power_signal_LPF);
+disp("Potencia de la seï¿½al: " + power_signal_LPF);
 disp("Potencia del ruido: " + power_noise_LPF);
-disp("Relación señal a ruido: " + s_n_LPF + " (" + round(mag2db(s_n_LPF), 2, 'decimals') + " dB)");
+disp("Relaciï¿½n seï¿½al a ruido: " + s_n_LPF + " (" + round(mag2db(s_n_LPF), 2, 'decimals') + " dB)");
 return;
 
 
-%% Gráficas del Mensaje Original %%
+
+
+%% Grï¿½ficas del Mensaje Original %%
 figure('Name','Mensaje Original');
-% Graficar señal en tiempo
+% Graficar seï¿½al en tiempo
 subplot(2,1,1);
 plot(t, msg);
 axis([0 0.025 -1 1]);
 plot_labels_time();
 
-% Graficar espectro de la señal
+% Graficar espectro de la seï¿½al
 subplot(2,1,2);
 M=abs(fftshift(fft(msg)));
 M=M/N;
@@ -77,15 +86,15 @@ axis([-3000 3000 0 0.5])
 grid on
 
 
-%% Gráficas del Mensaje Modulado
+%% Grï¿½ficas del Mensaje Modulado
 figure('Name','Mensaje Modulado');
-% Graficar señal en tiempo
+% Graficar seï¿½al en tiempo
 subplot(2,1,1);
 plot(t, msg_mod);
 axis([0 0.01 -1 1])
 plot_labels_time();
 
-% Graficar espectro de la señal
+% Graficar espectro de la seï¿½al
 subplot(2,1,2);
 M=abs(fftshift(fft(msg_mod)));
 M=M/N;
@@ -94,15 +103,15 @@ axis([-15000 15000 0 0.5]);
 plot_labels_frecuency();
 
 
-%% Gráficas del Canal
+%% Grï¿½ficas del Canal
 figure('Name','Mensaje en el Canal');
-% Graficar señal en tiempo
+% Graficar seï¿½al en tiempo
 subplot(2,1,1);
 plot(t, msg_canal);
 axis([0 0.01 -1 1])
 plot_labels_time();
 
-% Graficar espectro de la señal
+% Graficar espectro de la seï¿½al
 subplot(2,1,2);
 M=abs(fftshift(fft(msg_canal)));
 M=M/N;
@@ -110,28 +119,28 @@ plot(F,M);
 axis([-15000 15000 0 0.5])
 plot_labels_frecuency()
 
-%% Gráficas del Receptor
+%% Grï¿½ficas del Receptor
 figure('Name','Receptor');
-% Graficar señal en tiempo
+% Graficar seï¿½al en tiempo
 subplot(3,2,1);
 plot(t, y_BPF);
 plot_labels_time();
-title('Señal en el tiempo: Pasa Banda');
+title('Seï¿½al en el tiempo: Pasa Banda');
 axis([0 0.01 -1 1])
 
 subplot(3,2,3);
 plot(t, y_D);
 plot_labels_time();
-title('Señal en el tiempo: Detector');
+title('Seï¿½al en el tiempo: Detector');
 axis([0 0.01 -1 1])
 
 subplot(3,2,5);
 plot(t, y_LPF);
 plot_labels_time();
-title('Señal en el tiempo: Pasa Bajo');
+title('Seï¿½al en el tiempo: Pasa Bajo');
 axis([0 0.01 -1 1])
 
-% Graficar espectro de la señal
+% Graficar espectro de la seï¿½al
 subplot(3,2,2);
 M=abs(fftshift(fft(y_BPF)));
 M=M/N;
@@ -159,7 +168,7 @@ axis([-15000 15000 0 0.5])
 
 %% Funciones
 
-% Selección del mensaje
+% Selecciï¿½n del mensaje
 %   1: Archivo de Sonido
 %   2: Tono 0,5V@100Hz
 %   3: Tono 1,0V@1000Hz
@@ -170,9 +179,9 @@ function msg = mensaje(selector)
         case 1
             % Carga el archivo de sonido
             load('archivo1.mat');
-            msg = sonido(1:200000,:);   % Ajusta el número de muestras
+            msg = sonido(1:200000,:);   % Ajusta el nï¿½mero de muestras
             msg = msg - mean(msg);      % Elimina la componente DC
-            msg = rescale(msg,-1,1);    % Ajusta el valor máximo a la unidad
+            msg = rescale(msg,-1,1);    % Ajusta el valor mï¿½ximo a la unidad
         case 2
             msg = 0.5*sin(2*pi*100*t);
         case 3
@@ -182,7 +191,7 @@ function msg = mensaje(selector)
     end
 end
 
-% Simulación de modulación
+% Simulaciï¿½n de modulaciï¿½n
 function msg_mod = modulador(msg, selector_modulacion, fc, u)
     global t;
     ka = 1;
@@ -194,7 +203,7 @@ function msg_mod = modulador(msg, selector_modulacion, fc, u)
     end
 end
 
-% Simulación del canal
+% Simulaciï¿½n del canal
 function msg_canal = canal(msg_mod, selector_ruido, Pr)
     switch selector_ruido
         case 'ON'
@@ -204,25 +213,27 @@ function msg_canal = canal(msg_mod, selector_ruido, Pr)
     end
 end
 
-% Simulación del filtro pasabanda, detector síncrono y filtro pasabajo
+% Simulaciï¿½n del filtro pasabanda, detector sï¿½ncrono y filtro pasabajo
 function [y_BPF, y_D, y_LPF] = receptor(msg_canal, fase_detector)
     global Fc;
     global Fs;
     global t;
-    y_BPF = bandpass(msg_canal, [8000 12000], Fs);
+    global f_bpf;
+    global f_lpf;
+    y_BPF = bandpass(msg_canal, f_bpf, Fs);
     y_D = y_BPF.*cos(2*pi*Fc*t+fase_detector);
-    y_LPF = lowpass(y_D,2000,Fs);
+    y_LPF = lowpass(y_D, f_lpf, Fs);
 end
 
-% Agrega etiquetas de gráficas de tiempo
+% Agrega etiquetas de grï¿½ficas de tiempo
 function plot_labels_time()
-    title('Señal en el tiempo');
+    title('Seï¿½al en el tiempo');
     xlabel('Tiempo (s)');
     ylabel('Msg Mod (t)');
     grid on;
 end
 
-% Agrega etiquetas en gráficas de frecuencia
+% Agrega etiquetas en grï¿½ficas de frecuencia
 function plot_labels_frecuency()
     title('Espectro de Frecuencia');
     xlabel('Frecuencia (Hz)');
