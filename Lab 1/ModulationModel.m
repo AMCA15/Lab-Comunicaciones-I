@@ -1,3 +1,6 @@
+% Anderson Contreras
+% Class to model AM and DSB-SC Modulation
+
 classdef ModulationModel < handle
     properties
        % General Parameter
@@ -78,7 +81,7 @@ classdef ModulationModel < handle
             switch(selector_modulacion)
                 case 'AM'
                     %obj.msg_mod = ka*(1 + u*obj.msg).*cos(2*pi*fc*obj.t);
-                    obj.msg_mod = ammod(obj.msg, fc, obj.Fs, 0, ka);
+                    obj.msg_mod = ammod(u*obj.msg, fc, obj.Fs, 0, ka);
                 case 'DSB'
                     %obj.msg_mod = ka*obj.msg.*cos(2*pi*fc*obj.t);
                     obj.msg_mod = ammod(obj.msg, fc, obj.Fs);
