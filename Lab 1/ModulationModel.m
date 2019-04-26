@@ -1,4 +1,6 @@
 % Anderson Contreras
+% 16-11350
+
 % Class to model AM and DSB-SC Modulation
 
 classdef ModulationModel < handle
@@ -36,7 +38,7 @@ classdef ModulationModel < handle
 
     methods
         function obj = ModulationModel
-           obj.N = 20000;
+           obj.N = 200000;
            obj.Fs = 90000;
            obj.Fc = 10000;
            obj.f_bpf = [8000 12000];      % Pasa Banda
@@ -80,11 +82,10 @@ classdef ModulationModel < handle
             obj.A = u;
             switch(selector_modulacion)
                 case 'AM'
-                    %obj.msg_mod = ka*(1 + u*obj.msg).*cos(2*pi*fc*obj.t);
                     obj.msg_mod = ammod(u*obj.msg, fc, obj.Fs, 0, ka);
                 case 'DSB'
-                    %obj.msg_mod = ka*obj.msg.*cos(2*pi*fc*obj.t);
-                    obj.msg_mod = ammod(obj.msg, fc, obj.Fs);
+                    kdsb = ka / sqrt(obj.PowerRMS(obj.msg) / (1 + u^2*obj.PowerRMS(obj.msg)));
+                    obj.msg_mod = kdsb*ammod(obj.msg, fc, obj.Fs);
             end
         end
 
@@ -104,7 +105,6 @@ classdef ModulationModel < handle
         function obj = receptor(obj, fase_detector)
             obj.Phase = fase_detector;
             obj.y_BPF = bandpass(obj.msg_canal, obj.f_bpf, obj.Fs);
-            %obj.y_D = obj.y_BPF.*cos(2*pi*obj.Fc*obj.t+fase_detector);
             obj.y_D = amdemod(obj.y_BPF, obj.Fc, obj.Fs, fase_detector);  
             obj.y_LPF = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
         end
@@ -118,7 +118,6 @@ classdef ModulationModel < handle
 
             % No noise signal version in the receptor.
             y_BPF_no_noise = bandpass(obj.msg_mod, obj.f_bpf, obj.Fs);
-            %y_D_no_noise = y_BPF_no_noise.*cos(2*pi*obj.Fc*obj.t+obj.Phase);
             y_D_no_noise = amdemod(y_BPF_no_noise, obj.Fc, obj.Fs, obj.Phase);
             y_LPF_no_noise = lowpass(y_D_no_noise, obj.f_lpf, obj.Fs);
 
