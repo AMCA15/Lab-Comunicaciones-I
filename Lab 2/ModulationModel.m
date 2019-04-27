@@ -1,3 +1,8 @@
+% Anderson Contreras
+% 16-11350
+
+% Class to model FM
+
 classdef ModulationModel < handle
     properties
        % General Parameter
@@ -11,24 +16,18 @@ classdef ModulationModel < handle
        y_BPF
        y_D
        y_LPF
-       
-       y_A
-       y_B
-       y_C
-       y_D
-       y_E
 
        % Modulation
-       ModType
        Fc
-       A
+       FreqDev
 
        % Channel
        NoiseState
        NoisePower
 
        % Detector
-       Phase
+       Flo
+       Freqdev_D
        f_bpf
        f_lpf
     end
@@ -55,32 +54,28 @@ classdef ModulationModel < handle
 
         function obj = mensaje(obj, selector)
         % Seleccion del mensaje
-        %   1: Archivo 1
-        %   2: Archivo 2
-        %   3: Tono 0,5V@1000Hz
-        %   4: Tono 1,0V@10000Hz
-        %   5: Tono 0,8V@20000Hz
+        %   1: Sonido
+        %   1: Señal Compuesta
+        %   3: Tono 1,0V@1000Hz
             switch selector
                 case 1
-                    % Carga el archivo 1
+                    % Carga el archivo de sonido
                     data = load('arch1.mat');
-                    obj.msg = data.msg1(1:obj.N,:);       % Ajusta el numero de muestras
+                    obj.msg = data.msg1;                 % Ajusta el numero de muestras
                 case 2
-                    % Carga el archivo 2
+                    % Carga el archivo de la señal compuesta
                     data = load('arch2.mat');
-                    obj.msg = data.y_rf_tot(1:obj.N,:);       % Ajusta el numero de muestras
+                    obj.msg = data.y_rf_tot;             % Ajusta el numero de muestras
                 case 3
-                    obj.msg = 0.5*sin(2*pi*1000*obj.t);
-                case 4
-                    obj.msg = sin(2*pi*10000*obj.t);
-                case 5
-                    obj.msg = 0.8*sin(2*pi*20000*obj.t);
+                    obj.msg = sin(2*pi*1000*obj.t);
             end
         end
 
         % Simulacion de modulacion
         function obj = modulador(obj, fc, freqdev)
-            obj.msg_mod = fmmod(obj.msg, fc, obj.fs, freqdev);
+            obj.Fc = fc;
+            obj.FreqDev = freqdev;
+            obj.msg_mod = fmmod(obj_msg, fc, freqdev);
         end
 
         % Simulacion del canal
@@ -96,11 +91,12 @@ classdef ModulationModel < handle
         end
 
         % Simulacion del filtro pasabanda, detector sincrono y filtro pasabajo
-        function obj = receptor(obj, Flo, freqdev, W_IF, W)
-            %obj.Phase = fase_detector;
-            %obj.y_BPF = bandpass(obj.msg_canal, obj.f_bpf, obj.Fs);
-            %obj.y_D = amdemod(obj.y_BPF, obj.Fc, obj.Fs, fase_detector);  
-            %obj.y_LPF = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
+        function obj = receptor(obj, flo, freqdev)
+            obj.Flo = flo;
+            obj.FreqDev = freqdev;
+            obj.y_BPF = bandpass(obj.msg_canal, obj.f_bpf, obj.Fs);
+            obj.y_D = fmdemod(obj.y_BPF, obj.Fc, obj.Fs, fase_detector);
+            obj.y_LPF = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
         end
 
         function dispPower(obj)
