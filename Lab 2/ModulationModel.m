@@ -13,16 +13,17 @@ classdef ModulationModel < handle
        msg
        msg_mod
        msg_canal
-       y_BPF
+       y_A
+       y_B
+       y_C
        y_D
-       y_LPF
+       y_E
 
        % Modulation
        Fc
        FreqDev
 
        % Channel
-       NoiseState
        NoisePower
 
        % Detector
@@ -73,20 +74,24 @@ classdef ModulationModel < handle
 
         % Simulacion de modulacion
         function obj = modulador(obj, fc, freqdev)
-            obj.Fc = fc;
-            obj.FreqDev = freqdev;
-            obj.msg_mod = fmmod(obj_msg, fc, freqdev);
+            switch nargin
+                case 1                      % Si no se pasan argumentos no se realiza la modulación
+                    obj.msg_mod = obj.msg;
+                otherwise
+                    obj.Fc = fc;
+                    obj.FreqDev = freqdev;
+                    obj.msg_mod = fmmod(obj.msg, fc, obj.Fs, freqdev);                    
+            end
         end
 
         % Simulacion del canal
-        function obj = canal(obj, selector_ruido, Pr)
-            obj.NoiseState = selector_ruido;
-            obj.NoisePower = Pr;
-            switch selector_ruido
-                case 'ON'
-                    obj.msg_canal = obj.msg_mod + wgn(1, obj.N, Pr, 'linear');
-                case 'OFF'
+        function obj = canal(obj, Pr)
+            switch nargin
+                case 1                      % Si no se pasan argumentos no se agrega ruido a la señal
                     obj.msg_canal = obj.msg_mod;
+                otherwise
+                    obj.NoisePower = Pr;
+                    obj.msg_canal = obj.msg_mod + wgn(1, obj.N, Pr, 'linear');
             end
         end
 
@@ -94,34 +99,36 @@ classdef ModulationModel < handle
         function obj = receptor(obj, flo, freqdev)
             obj.Flo = flo;
             obj.FreqDev = freqdev;
-            obj.y_BPF = bandpass(obj.msg_canal, obj.f_bpf, obj.Fs);
-            obj.y_D = fmdemod(obj.y_BPF, obj.Fc, obj.Fs, fase_detector);
-            obj.y_LPF = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
+            
+            obj.y_A = obj.msg_canal;
+            obj.y_B = ammod(obj.y_A, obj.Flo, obj.Fs);
+            obj.y_C = bandpass(obj.y_B, obj.f_bpf, obj.Fs);
+            obj.y_D = fmdemod(obj.y_C, obj.Flo, obj.Fs, obj.FreqDev);
+            obj.y_E = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
         end
 
         function dispPower(obj)
-            % Message's power
-            power_msg = obj.PowerRMS(obj.msg);
-
-            % Message modulated's power
-            power_msg_mod = obj.PowerRMS(obj.msg_mod);
-
-            % No noise signal version in the receptor.
-            y_BPF_no_noise = bandpass(obj.msg_mod, obj.f_bpf, obj.Fs);
-            y_D_no_noise = amdemod(y_BPF_no_noise, obj.Fc, obj.Fs, obj.Phase);
-            y_LPF_no_noise = lowpass(y_D_no_noise, obj.f_lpf, obj.Fs);
-
-            % Banda Pass Filter's power
-            power_signal_BPF = obj.PowerRMS(obj.y_BPF);
-            power_noise_BPF = obj.PowerRMS(obj.y_BPF - y_BPF_no_noise);
-
-            % Low Pass Filter's power
-            power_signal_LPF = obj.PowerRMS(obj.y_LPF);
-            power_noise_LPF = obj.PowerRMS(obj.y_LPF - y_LPF_no_noise);
+            % Power of the message received
+            power_sr = obj.PowerRMS(obj.msg_mod);
             
-            obj.PrintPwrMsgs(power_msg, power_msg_mod);
-            obj.PrintPwrSignalNoise("A la salida del filtro pasabanda", power_signal_BPF, power_noise_BPF);
-            obj.PrintPwrSignalNoise("A la salida del filtro pasabajo", power_signal_LPF, power_noise_LPF);
+            % Power of the noise received
+            power_nr = obj.PowerRMS(obj.msg_mod - obj.msg_canal);
+
+            % Power of the message detected
+            power_sd = obj.PowerRMS(obj.y_E);
+            
+            A = obj.msg_mod - obj.msg_canal;
+            B = ammod(A, obj.Flo, obj.Fs);
+            C = bandpass(B, obj.f_bpf, obj.Fs);
+            D = fmdemod(C, obj.Flo, obj.Fs, obj.FreqDev);
+            E = lowpass(D, obj.f_lpf, obj.Fs);
+            
+            % Power of the noise detected
+            power_nd = obj.PowerRMS(E);
+            
+            %obj.PrintPwrMsgs(power_msg, power_msg_mod);
+            obj.PrintPwrSignalNoise("Señal recibida", power_sr, power_nr);
+            obj.PrintPwrSignalNoise("Señal detectada", power_sd, power_nd);
         end
 
         % Plot time domain and frequency domain
