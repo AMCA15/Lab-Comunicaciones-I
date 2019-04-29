@@ -60,15 +60,23 @@ classdef ModulationModel < handle
         %   3: Tono 1,0V@1000Hz
             switch selector
                 case 1
+                    obj.msg = sin(2*pi*1000*obj.t);
+                
+                case 2
+                    obj.msg = sin(2*pi*1000*2*obj.t);
+                    
+                case 3
+                    obj.msg = sin(2*pi*1000*3*obj.t);
+                
+                case 4
                     % Carga el archivo de sonido
                     data = load('arch1.mat');
                     obj.msg = data.msg1;                 % Ajusta el numero de muestras
-                case 2
+                
+                case 5
                     % Carga el archivo de la señal compuesta
                     data = load('arch2.mat');
                     obj.msg = data.y_rf_tot;             % Ajusta el numero de muestras
-                case 3
-                    obj.msg = sin(2*pi*1000*obj.t);
             end
         end
 
@@ -131,6 +139,12 @@ classdef ModulationModel < handle
             obj.PrintPwrSignalNoise("Señal detectada", power_sd, power_nd);
         end
 
+        % Plot modulated signal
+        function fftplot(obj)
+            fftplot(obj.msg_mod, obj.Fs);
+            obj.plot_labels_frecuency(" Señal Modulada");
+        end        
+        
         % Plot time domain and frequency domain
         function plot(obj)
             obj.plot_layout('Mensaje Original', 2, 1, 'Vertical', obj.msg, "");
