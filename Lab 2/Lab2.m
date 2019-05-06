@@ -34,5 +34,21 @@ end
 fftplot(s);
 
 
-%s.dispPower;    % Muestra las potencias de cada punto de intereres en la consola
-%plot(s);
+% Recuperación de mensajes de señal compuesta
+% Casos:
+%   1: Mensaje en canal de 20KHz. Música: Por Una Cabeza - The Tango Project
+%   2: Mensaje en canal de 35KHz. Música: Love theme from "The Godfather"
+
+Caso = 1;
+
+s.mensaje(5);        % Seleccion señal RF compuesta
+s.modulador();       % No se modula ya que la señal está modulada
+s.canal();           % No se agrega ruido a la señal
+switch Caso
+    case 1
+        s.receptor(6000, 100);     % Selecciona el canal de 6KHz
+    case 2
+        s.receptor(21000, 100);    % Selecciona el canal de 21Khz
+end
+s.play();           % Reproduce el sonido demodulado
+

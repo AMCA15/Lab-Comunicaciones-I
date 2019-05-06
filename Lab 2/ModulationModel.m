@@ -28,7 +28,8 @@ classdef ModulationModel < handle
 
        % Detector
        Flo
-       Freqdev_D
+       FreqDev_D
+       F_IF
        f_bpf
        f_lpf
     end
@@ -41,9 +42,10 @@ classdef ModulationModel < handle
         function obj = ModulationModel
            obj.N = 825000;
            obj.Fs = 110250;
-           obj.Fc = 10000;
-           obj.f_bpf = [8000 12000];      % Pasa Banda
-           obj.f_lpf = 2000;              % Pasa Bajo
+           obj.Fc = 10000;    
+           obj.F_IF = 14000;
+           obj.f_bpf = [12500 15500];  % Pasa Banda
+           obj.f_lpf = 750;            % Pasa Bajo
         end
 
         function t = get.t(obj)
@@ -106,13 +108,17 @@ classdef ModulationModel < handle
         % Simulacion del filtro pasabanda, detector sincrono y filtro pasabajo
         function obj = receptor(obj, flo, freqdev)
             obj.Flo = flo;
-            obj.FreqDev = freqdev;
+            obj.FreqDev_D = freqdev;
             
             obj.y_A = obj.msg_canal;
             obj.y_B = ammod(obj.y_A, obj.Flo, obj.Fs);
             obj.y_C = bandpass(obj.y_B, obj.f_bpf, obj.Fs);
-            obj.y_D = fmdemod(obj.y_C, obj.Flo, obj.Fs, obj.FreqDev);
+            obj.y_D = fmdemod(obj.y_C, obj.F_IF, obj.Fs, obj.FreqDev);
             obj.y_E = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
+        end
+        
+        function play(obj)
+            playblocking(audioplayer(obj.y_E(50:end-5), obj.Fs));
         end
 
         function dispPower(obj)
@@ -128,7 +134,7 @@ classdef ModulationModel < handle
             A = obj.msg_mod - obj.msg_canal;
             B = ammod(A, obj.Flo, obj.Fs);
             C = bandpass(B, obj.f_bpf, obj.Fs);
-            D = fmdemod(C, obj.Flo, obj.Fs, obj.FreqDev);
+            D = fmdemod(C, obj.Flo, obj.Fc, obj.FreqDev);
             E = lowpass(D, obj.f_lpf, obj.Fs);
             
             % Power of the noise detected
