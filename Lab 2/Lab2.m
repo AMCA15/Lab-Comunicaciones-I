@@ -5,13 +5,19 @@
 
 s = ModulationModel;
 
+% Parte 1: Ancho de banda de transmisión, índice de modulación y
+% contenido frecuencial del mensaje
+
 % Casos:
 %   1: Frecuencia Constante: 1000Hz Fc=20000. B=1
 %   2: Frecuencia Constante: 1000Hz Fc=20000. B=2
-%   3: Frecuencia Constante: 1000Hz Fc=20000. B=3
+%   3: Frecuencia Constante: 1000Hz Fc=20000. B=5
 %   4: Amplitud Constante:     1    Fc=20000. B=1
 %   5: Amplitud Constante:     1    Fc=20000. B=2
-%   6: Amplitud Constante:     1    Fc=20000. B=3
+%   6: Amplitud Constante:     1    Fc=20000. B=5
+%   7: Mensaje de "arch1"           Cociente de Desviación = 1
+%   8: Mensaje de "arch1"           Cociente de Desviación = 5
+%   9: Mensaje de "arch1"           Cociente de Desviación = 10
 
 selector = 1;
 
@@ -22,6 +28,8 @@ switch selector
         s.mensaje(2);
     case 6
         s.mensaje(3);
+    case {7,8,9}
+        s.mensaje(4);
 end
 switch selector
     case {1,4,5,6}
@@ -29,10 +37,20 @@ switch selector
     case 2
         s.modulador(20000, 2000);
     case 3
-        s.modulador(20000, 3000);
+        s.modulador(20000, 5000);
+    case 7
+        s.modulador(20000, 1000);
+    case 8
+        s.modulador(20000, 5000);
+    case 9
+        s.modulador(20000, 10000);
 end
 fftplot(s);
 
+
+
+
+% Parte 2: Receptor superheterodino
 
 % Recuperación de mensajes de señal compuesta
 % Casos:
@@ -43,12 +61,17 @@ Caso = 1;
 
 s.mensaje(5);        % Seleccion señal RF compuesta
 s.modulador();       % No se modula ya que la señal está modulada
-s.canal();           % No se agrega ruido a la señal
+s.canal();          % Potencia del ruido
 switch Caso
     case 1
-        s.receptor(6000, 100);     % Selecciona el canal de 6KHz
+        s.receptor(6000, 1000);     % Selecciona el canal de 6KHz
     case 2
-        s.receptor(21000, 100);    % Selecciona el canal de 21Khz
+        s.receptor(21000, 1000);    % Selecciona el canal de 21Khz
 end
+plot_receptor(s);
 s.play();           % Reproduce el sonido demodulado
+s.dispPower;
+
+
+
 

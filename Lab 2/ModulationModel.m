@@ -44,8 +44,8 @@ classdef ModulationModel < handle
            obj.Fs = 110250;
            obj.Fc = 10000;    
            obj.F_IF = 14000;
-           obj.f_bpf = [12500 15500];  % Pasa Banda
-           obj.f_lpf = 750;            % Pasa Bajo
+           obj.f_bpf = [8500 19500];   % Pasa Banda
+           obj.f_lpf = 5500;            % Pasa Bajo
         end
 
         function t = get.t(obj)
@@ -65,10 +65,10 @@ classdef ModulationModel < handle
                     obj.msg = sin(2*pi*1000*obj.t);
                 
                 case 2
-                    obj.msg = sin(2*pi*1000*2*obj.t);
+                    obj.msg = sin(2*pi*1000/2*obj.t);
                     
                 case 3
-                    obj.msg = sin(2*pi*1000*3*obj.t);
+                    obj.msg = sin(2*pi*1000/5*obj.t);
                 
                 case 4
                     % Carga el archivo de sonido
@@ -90,7 +90,7 @@ classdef ModulationModel < handle
                 otherwise
                     obj.Fc = fc;
                     obj.FreqDev = freqdev;
-                    obj.msg_mod = fmmod(obj.msg, fc, obj.Fs, freqdev);                    
+                    obj.msg_mod = fmmod(obj.msg, fc, obj.Fs, obj.FreqDev);                    
             end
         end
 
@@ -99,6 +99,7 @@ classdef ModulationModel < handle
             switch nargin
                 case 1                      % Si no se pasan argumentos no se agrega ruido a la señal
                     obj.msg_canal = obj.msg_mod;
+                    obj.NoisePower = 0;
                 otherwise
                     obj.NoisePower = Pr;
                     obj.msg_canal = obj.msg_mod + wgn(1, obj.N, Pr, 'linear');
@@ -111,9 +112,9 @@ classdef ModulationModel < handle
             obj.FreqDev_D = freqdev;
             
             obj.y_A = obj.msg_canal;
-            obj.y_B = ammod(obj.y_A, obj.Flo, obj.Fs);
+            obj.y_B = obj.y_A.*cos(2*pi*obj.Flo*obj.t);
             obj.y_C = bandpass(obj.y_B, obj.f_bpf, obj.Fs);
-            obj.y_D = fmdemod(obj.y_C, obj.F_IF, obj.Fs, obj.FreqDev);
+            obj.y_D = fmdemod(obj.y_C, obj.F_IF, obj.Fs, obj.FreqDev_D);
             obj.y_E = lowpass(obj.y_D, obj.f_lpf, obj.Fs);
         end
         
@@ -126,19 +127,25 @@ classdef ModulationModel < handle
             power_sr = obj.PowerRMS(obj.msg_mod);
             
             % Power of the noise received
-            power_nr = obj.PowerRMS(obj.msg_mod - obj.msg_canal);
+            noise = wgn(1, obj.N, obj.NoisePower, 'linear');
+            power_nr = obj.PowerRMS(noise);
 
-            % Power of the message detected
-            power_sd = obj.PowerRMS(obj.y_E);
             
-            A = obj.msg_mod - obj.msg_canal;
-            B = ammod(A, obj.Flo, obj.Fs);
-            C = bandpass(B, obj.f_bpf, obj.Fs);
-            D = fmdemod(C, obj.Flo, obj.Fc, obj.FreqDev);
-            E = lowpass(D, obj.f_lpf, obj.Fs);
+            % Power of the message detected
+            SA = obj.msg_mod;
+            SB = SA.*cos(2*pi*obj.Flo*obj.t);
+            SC = bandpass(SB, obj.f_bpf, obj.Fs);
+            SD = fmdemod(SC, obj.F_IF, obj.Fs, obj.FreqDev_D);
+            SE = lowpass(SD, obj.f_lpf, obj.Fs);
+            power_sd = obj.PowerRMS(SE);
             
             % Power of the noise detected
-            power_nd = obj.PowerRMS(E);
+            NA = wgn(1, obj.N, obj.NoisePower, 'linear');
+            NB = NA.*cos(2*pi*obj.Flo*obj.t);
+            NC = bandpass(NB, obj.f_bpf, obj.Fs);
+            ND = fmdemod(NC, obj.F_IF, obj.Fs, obj.FreqDev_D);
+            NE = lowpass(ND, obj.f_lpf, obj.Fs);
+            power_nd = obj.PowerRMS(NE);
             
             %obj.PrintPwrMsgs(power_msg, power_msg_mod);
             obj.PrintPwrSignalNoise("Señal recibida", power_sr, power_nr);
@@ -149,50 +156,26 @@ classdef ModulationModel < handle
         function fftplot(obj)
             fftplot(obj.msg_mod, obj.Fs);
             obj.plot_labels_frecuency(" Señal Modulada");
-        end        
+        end      
         
-        % Plot time domain and frequency domain
-        function plot(obj)
-            obj.plot_layout('Mensaje Original', 2, 1, 'Vertical', obj.msg, "");
-            obj.plot_layout('Mensaje Modulado', 2, 1, 'Vertical', obj.msg_mod, "");
-            obj.plot_layout('Mensaje en el Canal', 2, 1, 'Vertical', obj.msg_canal, "");
-            obj.plot_layout('Mensaje en el Receptor', 3, 2, 'Horizontal', [obj.y_BPF; obj.y_D; obj.y_LPF], [": Pasa Banda"; ": Detector"; ": Pasa Bajo"]);
+        function plot_receptor(obj)
+            fftplot(obj.y_A, obj.Fs);
+            obj.plot_labels_frecuency(". y_A");
+            fftplot(obj.y_B, obj.Fs);
+            obj.plot_labels_frecuency(". y_B");
+            fftplot(obj.y_C, obj.Fs);
+            obj.plot_labels_frecuency(". y_C");
+            fftplot(obj.y_D, obj.Fs);
+            obj.plot_labels_frecuency(". y_D");
+            fftplot(obj.y_E, obj.Fs);
+            obj.plot_labels_frecuency(". y_E");
         end
+        
     end
 
-    methods (Hidden)
-        function plot_layout(obj, Title, Rows, Columns, Orientation, Signals, SignalsName)
-            figure('Name', Title);
-
-            if Orientation == "Horizontal"
-               Index = Rows;
-            else
-               Index = Columns;
-            end
-
-            for i = 1:Index
-                % Graficar señal en tiempo
-                subplot(Rows,Columns,(i*2-1));
-                plot(obj.t, Signals(i,:));
-                obj.plot_labels_time(SignalsName(i));
-                % Plot only 4 periods
-                [~, locs] = findpeaks(obj.msg, obj.Fs);
-                xUpperLim = mean(diff(locs))*4;
-                axis([0 xUpperLim -inf inf])
-
-                % Graficar señal en frecuencia
-                subplot(Rows,Columns,i*2);
-                M = abs(fftshift(fft(Signals(i,:))));
-                M = M / obj.N;
-                plot(obj.F, M);
-                obj.plot_labels_frecuency(SignalsName(i))
-                axis([-15000 15000 -inf inf])
-            end
-        end
-    end
-    methods (Static)
+    methods (Static)        
         function power = PowerRMS(Signal)
-           power = round(rms(Signal)^2, 3, 'decimals');
+           power = rms(Signal)^2;
         end
         
         function PrintPwrMsgs(power_msg, power_msg_mod)
@@ -204,7 +187,7 @@ classdef ModulationModel < handle
         end
         
         function PrintPwrSignalNoise(title, power_signal, power_noise)
-            sn = round(power_signal / power_noise, 2, 'decimals');
+            sn = power_signal / power_noise;
             disp("======================================");
             disp(title);
             disp("Potencia de la señal: " + power_signal);
@@ -227,6 +210,5 @@ classdef ModulationModel < handle
             ylabel('Msg (F)');
             grid on;
         end
-        
     end
 end
